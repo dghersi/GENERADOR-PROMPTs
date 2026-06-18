@@ -1,1 +1,993 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador Avanzado de Prompts de Estilo - V4</title>
+    <style>
+        :root {
+            /* Modo Claro (Default) */
+            --bg-canvas: #f1f5f9;
+            --panel-bg: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-ui: #cbd5e1;
+            --accent-color: #2563eb;
+            --btn-bg: #f8fafc;
+            --btn-hover: #f0fdf4;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05);
+        }
 
+        body.dark-mode {
+            /* Modo Oscuro */
+            --bg-canvas: #0f172a;
+            --panel-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-ui: #334155;
+            --accent-color: #3b82f6;
+            --btn-bg: #0f172a;
+            --btn-hover: #172554;
+            --shadow-lg: 0 10px 25px -5px rgba(0,0,0,0.5);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-canvas);
+            color: var(--text-main);
+            margin: 0;
+            padding: 24px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            border-radius: 16px;
+            box-shadow: var(--shadow-lg);
+            padding: 32px;
+            box-sizing: border-box;
+            transition: background-color 0.3s;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-ui);
+            padding-bottom: 24px;
+            margin-bottom: 32px;
+        }
+
+        .header-titles h1 {
+            font-size: 32px;
+            margin: 0 0 8px 0;
+            color: var(--text-main);
+            letter-spacing: -0.025em;
+        }
+
+        .header-titles p {
+            color: var(--text-muted);
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-icon {
+            background: var(--btn-bg);
+            border: 1px solid var(--border-ui);
+            color: var(--text-main);
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .control-column, .output-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .output-column {
+            position: sticky;
+            top: 24px;
+            height: fit-content;
+        }
+
+        .section-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-ui);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-top: 0;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-left: 4px solid var(--accent-color);
+            padding-left: 12px;
+        }
+
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .color-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: 1px solid var(--border-ui);
+            border-radius: 6px;
+            width: 44px;
+            height: 36px;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 5px; }
+
+        select, input[type="text"], input[type="number"] {
+            padding: 8px 12px;
+            border: 1px solid var(--border-ui);
+            border-radius: 6px;
+            font-size: 14px;
+            background: var(--panel-bg);
+            color: var(--text-main);
+            outline: none;
+            transition: border 0.2s;
+            box-sizing: border-box;
+        }
+
+        select:focus, input[type="text"]:focus {
+            border-color: var(--accent-color);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 4px;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--text-main);
+        }
+
+        .level-row-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--btn-bg);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-ui);
+            margin-bottom: 8px;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .preset-btn {
+            background: var(--btn-bg);
+            border: 1px solid var(--border-ui);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .preset-btn:hover {
+            border-color: var(--accent-color);
+            background: var(--btn-hover);
+        }
+
+        .preset-btn .swatches {
+            display: flex;
+            gap: 4px;
+        }
+
+        .preset-btn .swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* PAPER PREVIEW (A4 Simulator) */
+        .preview-container {
+            background: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            overflow-x: auto;
+            max-height: 550px;
+            overflow-y: auto;
+        }
+
+        .paper-a4 {
+            background: #ffffff;
+            color: #000000; /* Text is always dark on the paper */
+            width: 100%;
+            max-width: 21cm;
+            min-height: 29.7cm;
+            padding: 2.5cm;
+            box-sizing: border-box;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            position: relative;
+        }
+
+        body.dark-mode .preview-container {
+            background: #0f172a;
+        }
+        body.dark-mode .paper-a4 {
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        }
+
+        /* Document Styles inside Preview */
+        .doc-header-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9pt;
+            color: #64748b;
+            padding-bottom: 4px;
+            margin-bottom: 20px;
+        }
+
+        .doc-footer-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 9pt;
+            color: #64748b;
+            padding-top: 4px;
+            margin-top: 25px;
+        }
+
+        .doc-callout {
+            border-left: 4px solid;
+            padding: 12px;
+            margin: 16px 0;
+            font-size: 10.5pt;
+        }
+
+        .doc-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            font-size: 10pt;
+        }
+
+        .doc-table th, .doc-table td {
+            padding: 8px 10px;
+            text-align: left;
+        }
+
+        .badge-status {
+            padding: 4px 8px;
+            font-size: 8.5pt;
+            font-weight: bold;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        /* Prompt Box */
+        .prompt-container {
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            height: 300px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 12.5px;
+            padding: 16px;
+            background: #0f172a;
+            color: #38bdf8;
+            border: none;
+            border-radius: 12px;
+            resize: vertical;
+            box-sizing: border-box;
+            line-height: 1.5;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #1d4ed8;
+        }
+
+        /* File input hidden */
+        #import-file {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header class="top-bar">
+        <div class="header-titles">
+            <h1>🛠️ Generador de Patrones de Estilo (V4)</h1>
+            <p>Simulador A4, Configuración CSS Avanzada y Persistencia JSON</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn-icon" onclick="toggleDarkMode()" id="btn-theme">🌙 Modo Oscuro</button>
+            <button class="btn-icon" onclick="document.getElementById('import-file').click()">📂 Importar JSON</button>
+            <input type="file" id="import-file" accept=".json" onchange="importJSON(event)">
+            <button class="btn-icon" onclick="exportJSON()">💾 Exportar JSON</button>
+        </div>
+    </header>
+
+    <div class="main-grid">
+        <div class="control-column">
+            
+            <div class="section-card">
+                <div class="section-title">1) Estilos Personalizados</div>
+                
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>a) Títulos / H1 (Color)</label>
+                        <div class="color-row">
+                            <input type="color" id="h1-color" value="#0b5394" onchange="generateAll()">
+                            <select id="h1-transform" onchange="generateAll()">
+                                <option value="none">Normal</option>
+                                <option value="uppercase">MAYÚSCULAS</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>b) H2 y H3 (Color)</label>
+                        <div class="color-row">
+                            <input type="color" id="h2-color" value="#0b5394" onchange="generateAll()">
+                            <select id="h2-style" onchange="generateAll()">
+                                <option value="underline">Línea inferior</option>
+                                <option value="leftborder">Borde izquierdo</option>
+                                <option value="clean">Limpio / Solo Negrita</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>c) Tablas (Cabecera y Fondo)</label>
+                        <div class="color-row">
+                            <input type="color" id="table-head-bg" value="#0b5394" onchange="generateAll()">
+                            <input type="color" id="table-zebra-bg" value="#f8fafc" onchange="generateAll()">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>d) Párrafos (Color y Espaciado)</label>
+                        <div class="color-row">
+                            <input type="color" id="p-color" value="#222222" onchange="generateAll()">
+                            <select id="p-spacing" onchange="generateAll()">
+                                <option value="1.25">Estrecho (1.25)</option>
+                                <option value="1.5" selected>Ejecutivo (1.5)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>e) Tipo de Fuente</label>
+                        <select id="font-family" onchange="generateAll()">
+                            <option value="'Inter', sans-serif">Inter (Legibilidad)</option>
+                            <option value="'Segoe UI', system-ui">Segoe UI (Limpios)</option>
+                            <option value="'Montserrat', sans-serif">Montserrat (Fuerte)</option>
+                            <option value="'Roboto', sans-serif">Roboto (Industrial)</option>
+                            <option value="'Aptos', sans-serif">Aptos (Office 365)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>f) Bordes y Esquinas</label>
+                        <div class="color-row">
+                            <select id="border-radius" onchange="generateAll()" style="width: 50%;">
+                                <option value="0px">Rectos (0px)</option>
+                                <option value="6px" selected>Suaves (6px)</option>
+                                <option value="12px">Redondos (12px)</option>
+                            </select>
+                            <select id="table-border-style" onchange="generateAll()" style="width: 50%;">
+                                <option value="standard">Borde Estándar</option>
+                                <option value="horizontal">Solo Horizontales</option>
+                                <option value="bold">Bordes Gruesos</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-title">2) Elementos Adicionales</div>
+                
+                <div class="grid-2col">
+                    <div class="form-group">
+                        <label>a) Formato Nro Página</label>
+                        <select id="page-number-format" onchange="generateAll()">
+                            <option value="Pág. X de Y">Pág. X de Y</option>
+                            <option value="X / Y">X / Y</option>
+                            <option value="Página X">Página X</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>b) Alineación Encabezado/Pie</label>
+                        <select id="hf-align" onchange="generateAll()">
+                            <option value="space-between">Extremos (Izq - Der)</option>
+                            <option value="right">Alineado a la Derecha</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>c) Líneas de acento y complementos</label>
+                    <div class="grid-2col">
+                        <label class="radio-label"><input type="checkbox" id="hf-lines" checked onchange="generateAll()"> Líneas en Header/Footer</label>
+                        <label class="radio-label"><input type="checkbox" id="inc-callout" checked onchange="generateAll()"> Cajas de Callout</label>
+                        <label class="radio-label"><input type="checkbox" id="inc-boldtotals" checked onchange="generateAll()"> Totales en Negrita</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-title">4) Mapas de Calor y Niveles</div>
+                
+                <div class="grid-2col" style="margin-bottom: 14px;">
+                    <div class="form-group">
+                        <label>Cantidad de Niveles</label>
+                        <select id="num-levels" onchange="rebuildDynamicLevels()">
+                            <option value="2">2 Niveles</option>
+                            <option value="3" selected>3 Niveles (Estándar)</option>
+                            <option value="4">4 Niveles</option>
+                            <option value="5">5 Niveles</option>
+                            <option value="6">6 Niveles</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Paleta de Contraste</label>
+                        <select id="semantic-palette" onchange="applySemanticPalette()">
+                            <option value="standard">Semáforo Clásico (Pastel)</option>
+                            <option value="cool">Cian / Azul / Lavanda</option>
+                            <option value="warm">Alerta Industrial (Cálidos)</option>
+                            <option value="monochrome">Escala de Grises Ejecutiva</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="dynamic-levels-list"></div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-title">5) Temas Corporativos</div>
+                <div class="preset-grid">
+                    <button class="preset-btn" onclick="loadTheme('hada')">
+                        <span>1. Grupo HADA</span>
+                        <div class="swatches">
+                            <div class="swatch" style="background:#0b5394;"></div>
+                            <div class="swatch" style="background:#f8fafc;"></div>
+                        </div>
+                    </button>
+                    <button class="preset-btn" onclick="loadTheme('tech')">
+                        <span>2. Slate Cyber</span>
+                        <div class="swatches">
+                            <div class="swatch" style="background:#334155;"></div>
+                            <div class="swatch" style="background:#f1f5f9;"></div>
+                        </div>
+                    </button>
+                    <button class="preset-btn" onclick="loadTheme('emerald')">
+                        <span>3. Esmeralda</span>
+                        <div class="swatches">
+                            <div class="swatch" style="background:#115e59;"></div>
+                            <div class="swatch" style="background:#f0fdfa;"></div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="output-column">
+            
+            <div class="section-card">
+                <div class="section-title">6) Simulador de Hoja A4</div>
+                <div class="preview-container">
+                    <div class="paper-a4" id="preview-box">
+                        <div class="doc-header-line" id="v-header-line">
+                            <span>INFORME EVALUACIÓN DE VULNERABILIDADES</span>
+                            <span>Planta HADA Barranquilla</span>
+                        </div>
+                        <div id="v-h1" style="font-weight: bold; font-size: 20pt; margin-bottom: 12px;">Título del Reporte Técnico (H1)</div>
+                        <p id="v-p" style="margin: 0 0 16px 0;">Este simulador A4 muestra cómo se renderizan los márgenes, fuentes, radios de borde y estilos de tablas según las variables de configuración en tiempo real.</p>
+                        
+                        <div id="v-h2" style="font-weight: bold; font-size: 14pt; margin-bottom: 8px; padding-bottom: 4px;">Matriz de Priorización Dinámica (H2)</div>
+                        
+                        <div class="doc-callout" id="v-callout">
+                            <strong>Nota de Continuidad:</strong> Las calderas representan el nodo crítico principal (SPOF) del proceso operativo.
+                        </div>
+
+                        <table class="doc-table" id="v-table">
+                            <thead>
+                                <tr id="v-thead-row" style="color: white; font-weight: bold;">
+                                    <th>ID Activo</th>
+                                    <th>Impacto Estimado</th>
+                                    <th>Clasificación</th>
+                                </tr>
+                            </thead>
+                            <tbody id="v-table-body">
+                                </tbody>
+                        </table>
+
+                        <div class="doc-footer-line" id="v-footer-line">
+                            <span>Confidencial Grupo HADA</span>
+                            <span id="v-page-num">Pág. 1 de 5</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-title">7) Prompt de Formato Final</div>
+                <div class="prompt-container">
+                    <button class="copy-btn" onclick="copyTextPrompt()">Copiar Prompt</button>
+                    <textarea id="prompt-output-box" readonly></textarea>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- VARIABLES Y ESTADOS ---
+    let levelsMemory = [
+        { name: "Crítico / Alto", color: "#f8d7da" },
+        { name: "Medio / Alerta", color: "#fff3cd" },
+        { name: "Bajo / Preventivo", color: "#d1e7dd" },
+        { name: "Muy Alto / Extremo", color: "#fbcfe8" },
+        { name: "Muy Bajo / Estable", color: "#e0f2fe" },
+        { name: "Informativo", color: "#f1f5f9" }
+    ];
+
+    const themes = {
+        hada: { h1: "#0b5394", h2: "#0b5394", hstyle: "underline", th: "#0b5394", zebra: "#f8fafc", font: "'Inter', sans-serif", radius: "0px", tborders: "standard" },
+        tech: { h1: "#334155", h2: "#0f766e", hstyle: "leftborder", th: "#1e293b", zebra: "#f1f5f9", font: "'Segoe UI', system-ui", radius: "6px", tborders: "horizontal" },
+        emerald: { h1: "#115e59", h2: "#0f766e", hstyle: "underline", th: "#115e59", zebra: "#f0fdfa", font: "'Roboto', sans-serif", radius: "6px", tborders: "standard" }
+    };
+
+    const palettes = {
+        standard: ["#f8d7da", "#fff3cd", "#d1e7dd", "#fbcfe8", "#e0f2fe", "#f1f5f9"],
+        cool: ["#cffaf2", "#a5f3fc", "#bae6fd", "#c7d2fe", "#e0e7ff", "#f3e8ff"],
+        warm: ["#ffedd5", "#fed7aa", "#fde68a", "#fef08a", "#fef9c3", "#fffbeb"],
+        monochrome: ["#f1f5f9", "#e2e8f0", "#cbd5e1", "#94a3b8", "#64748b", "#475569"]
+    };
+
+    // --- FUNCIONES UTILITARIAS ---
+    function getContrastTextColor(hexColor) {
+        if (!hexColor || hexColor.charAt(0) !== '#') return '#1e293b';
+        const r = parseInt(hexColor.substr(1, 2), 16);
+        const g = parseInt(hexColor.substr(3, 2), 16);
+        const b = parseInt(hexColor.substr(5, 2), 16);
+        const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+        return (yiq >= 128) ? '#1e293b' : '#ffffff'; 
+    }
+
+    function toggleDarkMode() {
+        document.body.classList.toggle("dark-mode");
+        const btn = document.getElementById("btn-theme");
+        if(document.body.classList.contains("dark-mode")) {
+            btn.innerHTML = "☀️ Modo Claro";
+            localStorage.setItem("themeMode", "dark");
+        } else {
+            btn.innerHTML = "🌙 Modo Oscuro";
+            localStorage.setItem("themeMode", "light");
+        }
+    }
+
+    // --- NIVELES DINÁMICOS ---
+    function rebuildDynamicLevels() {
+        const numLevels = parseInt(document.getElementById("num-levels").value);
+        const listContainer = document.getElementById("dynamic-levels-list");
+        listContainer.innerHTML = "";
+
+        for (let i = 0; i < numLevels; i++) {
+            const lvl = levelsMemory[i];
+            const textContrast = getContrastTextColor(lvl.color);
+
+            const row = document.createElement("div");
+            row.className = "level-row-item";
+            row.innerHTML = `
+                <span style="font-size:12px; font-weight:bold; color:var(--text-muted); min-width:20px;">N${i+1}</span>
+                <input type="text" id="lvl-name-${i}" value="${lvl.name}" oninput="updateLevelData(${i})" style="flex:1; min-width:100px;">
+                <input type="color" id="lvl-color-${i}" value="${lvl.color}" onchange="updateLevelColor(${i})">
+                <span id="lvl-badge-${i}" class="badge-status" style="background-color: ${lvl.color}; color: ${textContrast}; min-width: 80px; text-align: center; border-radius: ${document.getElementById('border-radius').value};">
+                    Vista
+                </span>
+            `;
+            listContainer.appendChild(row);
+        }
+        generateAll();
+    }
+
+    function updateLevelData(index) {
+        levelsMemory[index].name = document.getElementById(`lvl-name-${index}`).value;
+        generateAll();
+    }
+
+    function updateLevelColor(index) {
+        const newColor = document.getElementById(`lvl-color-${index}`).value;
+        levelsMemory[index].color = newColor;
+        generateAll();
+    }
+
+    function applySemanticPalette() {
+        const selectedPalette = document.getElementById("semantic-palette").value;
+        const colorList = palettes[selectedPalette];
+        const numLevels = parseInt(document.getElementById("num-levels").value);
+
+        for (let i = 0; i < numLevels; i++) {
+            levelsMemory[i].color = colorList[i];
+        }
+        rebuildDynamicLevels();
+    }
+
+    function loadTheme(key) {
+        const t = themes[key];
+        document.getElementById("h1-color").value = t.h1;
+        document.getElementById("h2-color").value = t.h2;
+        document.getElementById("h2-style").value = t.hstyle;
+        document.getElementById("table-head-bg").value = t.th;
+        document.getElementById("table-zebra-bg").value = t.zebra;
+        document.getElementById("font-family").value = t.font;
+        document.getElementById("border-radius").value = t.radius;
+        document.getElementById("table-border-style").value = t.tborders;
+        generateAll();
+    }
+
+    // --- CORE GENERATION & PREVIEW ---
+    function generateAll() {
+        // Recolectar variables
+        const state = {
+            h1Color: document.getElementById("h1-color").value,
+            h1Transform: document.getElementById("h1-transform").value,
+            h2Color: document.getElementById("h2-color").value,
+            h2Style: document.getElementById("h2-style").value,
+            thBg: document.getElementById("table-head-bg").value,
+            zebraBg: document.getElementById("table-zebra-bg").value,
+            pColor: document.getElementById("p-color").value,
+            pSpacing: document.getElementById("p-spacing").value,
+            hfAlign: document.getElementById("hf-align").value,
+            fontFamily: document.getElementById("font-family").value,
+            borderRadius: document.getElementById("border-radius").value,
+            tableBorders: document.getElementById("table-border-style").value,
+            pageNumFormat: document.getElementById("page-number-format").value,
+            hfLines: document.getElementById("hf-lines").checked,
+            incCallout: document.getElementById("inc-callout").checked,
+            boldTotals: document.getElementById("inc-boldtotals").checked,
+            numLevels: parseInt(document.getElementById("num-levels").value)
+        };
+
+        // Guardar estado
+        localStorage.setItem("docPromptConfigV4", JSON.stringify({ state, levelsMemory }));
+
+        // 1. Actualizar A4 Preview
+        const previewBox = document.getElementById("preview-box");
+        previewBox.style.fontFamily = state.fontFamily;
+
+        const vH1 = document.getElementById("v-h1");
+        vH1.style.color = state.h1Color;
+        vH1.style.textTransform = state.h1Transform;
+
+        const vP = document.getElementById("v-p");
+        vP.style.color = state.pColor;
+        vP.style.lineHeight = state.pSpacing;
+
+        const vH2 = document.getElementById("v-h2");
+        vH2.style.color = state.h2Color;
+        if(state.h2Style === "underline") {
+            vH2.style.borderBottom = `2px solid ${state.h2Color}`;
+            vH2.style.borderLeft = "none"; vH2.style.paddingLeft = "0";
+        } else if(state.h2Style === "leftborder") {
+            vH2.style.borderLeft = `4px solid ${state.h2Color}`;
+            vH2.style.paddingLeft = "8px"; vH2.style.borderBottom = "none";
+        } else {
+            vH2.style.borderBottom = "none"; vH2.style.borderLeft = "none"; vH2.style.paddingLeft = "0";
+        }
+
+        const vCallout = document.getElementById("v-callout");
+        if(state.incCallout) {
+            vCallout.style.display = "block";
+            vCallout.style.borderLeftColor = state.h1Color;
+            vCallout.style.backgroundColor = state.zebraBg;
+            vCallout.style.borderRadius = `0 ${state.borderRadius} ${state.borderRadius} 0`;
+        } else { vCallout.style.display = "none"; }
+
+        // Tabla estilos
+        const table = document.getElementById("v-table");
+        document.getElementById("v-thead-row").style.backgroundColor = state.thBg;
+        
+        let borderCSS = "1px solid #cbd5e1";
+        if(state.tableBorders === "horizontal") borderCSS = "1px solid #cbd5e1 0";
+        if(state.tableBorders === "bold") borderCSS = "2px solid #94a3b8";
+
+        const tableBody = document.getElementById("v-table-body");
+        tableBody.innerHTML = "";
+        
+        for (let i = 0; i < state.numLevels; i++) {
+            const lvl = levelsMemory[i];
+            const tr = document.createElement("tr");
+            if(i % 2 === 1) tr.style.backgroundColor = state.zebraBg;
+            
+            let tdStyle = `padding: 8px; border: ${state.tableBorders === 'horizontal' ? 'none; border-bottom: 1px solid #e2e8f0;' : (state.tableBorders === 'bold' ? '2px solid #cbd5e1;' : '1px solid #e2e8f0;')}`;
+
+            tr.innerHTML = `
+                <td style="${tdStyle}">Activo ${i+1}</td>
+                <td style="${tdStyle}">$${(2000000 / (i+1)).toLocaleString('en-US')} USD</td>
+                <td style="${tdStyle}"><span class="badge-status" style="background-color: ${lvl.color}; color: ${getContrastTextColor(lvl.color)}; border-radius: ${state.borderRadius};">${lvl.name}</span></td>
+            `;
+            tableBody.appendChild(tr);
+
+            // Actualizar badge en el panel de control lateral
+            const ctrlBadge = document.getElementById(`lvl-badge-${i}`);
+            if(ctrlBadge) {
+                ctrlBadge.style.backgroundColor = lvl.color;
+                ctrlBadge.style.color = getContrastTextColor(lvl.color);
+                ctrlBadge.style.borderRadius = state.borderRadius;
+            }
+        }
+
+        if(state.boldTotals) {
+            const trTotal = document.createElement("tr");
+            trTotal.style.fontWeight = "bold";
+            let tdStyle = `padding: 8px; border: ${state.tableBorders === 'horizontal' ? 'none; border-top: 2px solid #94a3b8;' : '1px solid #e2e8f0;'}`;
+            trTotal.innerHTML = `
+                <td style="${tdStyle}">MÁXIMA PÉRDIDA</td><td style="${tdStyle}">$18,000,000 USD</td>
+                <td style="${tdStyle}"><span class="badge-status" style="background: #e2e8f0; color:#334155; border-radius: ${state.borderRadius};">Consolidado</span></td>
+            `;
+            tableBody.appendChild(trTotal);
+        }
+
+        // Header / Footer
+        const vHeadLine = document.getElementById("v-header-line");
+        const vFootLine = document.getElementById("v-footer-line");
+        if(state.hfLines) {
+            vHeadLine.style.borderBottom = "1px solid #cbd5e1";
+            vFootLine.style.borderTop = "1px solid #cbd5e1";
+        } else {
+            vHeadLine.style.borderBottom = "none";
+            vFootLine.style.borderTop = "none";
+        }
+        vHeadLine.style.justifyContent = state.hfAlign;
+        vFootLine.style.justifyContent = state.hfAlign;
+
+        const vPageNum = document.getElementById("v-page-num");
+        if(state.pageNumFormat === "Pág. X de Y") vPageNum.innerText = "Pág. 1 de 5";
+        else if(state.pageNumFormat === "X / Y") vPageNum.innerText = "1 / 5";
+        else vPageNum.innerText = "Página 1";
+
+        // 2. CONSTRUIR EL PROMPT
+        let semaforoPromptLines = "";
+        for (let i = 0; i < state.numLevels; i++) {
+            semaforoPromptLines += `   - Rango/Nivel [${levelsMemory[i].name}]: Fondo de celda/etiqueta "${levelsMemory[i].color}" con tipografía interna "${getContrastTextColor(levelsMemory[i].color)}".\n`;
+        }
+        
+        let borderRule = "Bordes 1px sólido delgado";
+        if(state.tableBorders === "horizontal") borderRule = "Sin bordes verticales, solo líneas horizontales divisorias (estilo limpio)";
+        if(state.tableBorders === "bold") borderRule = "Bordes gruesos marcados (2px solid)";
+
+        const promptText = `[INSTRUCCIÓN MAESTRA: ESTILOS VISUALES Y FORMATO DE RESULTADOS (V4)]
+Aplica estrictamente la siguiente maquetación visual (HTML/Inline CSS) en tu respuesta:
+
+1) ESTILOS Y TIPOGRAFÍA:
+- Fuente general: "${state.fontFamily}". Color texto: "${state.pColor}". Interlineado (párrafos): ${state.pSpacing}.
+- Radio de bordes (Border-radius): Aplicar ${state.borderRadius} a etiquetas (badges), callouts y esquinas aplicables para un look ${state.borderRadius === '0px' ? 'recto y estricto' : 'suavizado y moderno'}.
+- Títulos (H1): Color "${state.h1Color}", 20-22pt, negrita. Transformación: ${state.h1Transform}.
+- Subtítulos (H2/H3): Color "${state.h2Color}". H2 usa estilo: ${state.h2Style === 'underline' ? 'Línea inferior 2px' : state.h2Style === 'leftborder' ? 'Borde izquierdo de 4px' : 'Sin líneas'}.
+- Header/Footer: Texto gris 9pt. Alineación: ${state.hfAlign}. ${state.hfLines ? 'Incluir línea horizontal de 1px separadora.' : 'Sin líneas divisorias.'} Formato de numeración: "${state.pageNumFormat}".
+
+2) ESTRUCTURAS DE TABLAS Y EXTRAS:
+- Tablas: Ancho 100%, collapse. ${borderRule}.
+- Cabeceras (TH): Fondo "${state.thBg}", texto blanco.
+- Filas Cebra (TR pares): Fondo alterno "${state.zebraBg}".
+${state.boldTotals ? '- Filas de Totales/Resumen: Aplicar font-weight: bold en toda la fila.\n' : ''}${state.incCallout ? '- Cajas de Notas (Callout): Aplicar un borde izquierdo con el color H1 y fondo cebra para resaltar observaciones clave.\n' : ''}
+3) MAPAS DE CALOR Y NIVELES (SEMAFORIZACIÓN):
+Al presentar clasificaciones, riesgos o prioridades, aplica estas reglas de colores (fondo y texto) en las celdas o etiquetas:
+${semaforoPromptLines}
+Integra este diseño adaptativo de manera natural en todas las estructuras de la respuesta.`;
+
+        document.getElementById("prompt-output-box").value = promptText;
+    }
+
+    // --- EXPORTAR E IMPORTAR JSON ---
+    function exportJSON() {
+        const data = localStorage.getItem("docPromptConfigV4");
+        if(!data) return alert("Genera primero una configuración.");
+        
+        const blob = new Blob([data], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "plantilla_estilos_v4.json";
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function importJSON(event) {
+        const file = event.target.files[0];
+        if(!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                if(data.state && data.levelsMemory) {
+                    levelsMemory = data.levelsMemory;
+                    
+                    document.getElementById("h1-color").value = data.state.h1Color;
+                    document.getElementById("h1-transform").value = data.state.h1Transform;
+                    document.getElementById("h2-color").value = data.state.h2Color;
+                    document.getElementById("h2-style").value = data.state.h2Style;
+                    document.getElementById("table-head-bg").value = data.state.thBg;
+                    document.getElementById("table-zebra-bg").value = data.state.zebraBg;
+                    document.getElementById("p-color").value = data.state.pColor;
+                    document.getElementById("p-spacing").value = data.state.pSpacing;
+                    document.getElementById("font-family").value = data.state.fontFamily;
+                    document.getElementById("border-radius").value = data.state.borderRadius;
+                    document.getElementById("table-border-style").value = data.state.tableBorders;
+                    
+                    document.getElementById("hf-align").value = data.state.hfAlign;
+                    document.getElementById("page-number-format").value = data.state.pageNumFormat;
+                    document.getElementById("hf-lines").checked = data.state.hfLines;
+                    document.getElementById("inc-callout").checked = data.state.incCallout;
+                    document.getElementById("inc-boldtotals").checked = data.state.boldTotals;
+                    
+                    document.getElementById("num-levels").value = data.state.numLevels;
+                    
+                    rebuildDynamicLevels();
+                    alert("Plantilla importada exitosamente.");
+                } else {
+                    alert("El archivo JSON no tiene el formato correcto.");
+                }
+            } catch (err) {
+                alert("Error leyendo el archivo JSON.");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function copyTextPrompt() {
+        const textArea = document.getElementById("prompt-output-box");
+        textArea.select();
+        textArea.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(textArea.value);
+        
+        const btn = document.querySelector(".copy-btn");
+        btn.innerText = "¡Copiado!";
+        setTimeout(() => { btn.innerText = "Copiar Prompt"; }, 2000);
+    }
+
+    // --- INICIALIZACIÓN ---
+    window.onload = () => {
+        // Restaurar Tema
+        const theme = localStorage.getItem("themeMode");
+        if(theme === "dark") {
+            document.body.classList.add("dark-mode");
+            document.getElementById("btn-theme").innerHTML = "☀️ Modo Claro";
+        }
+        
+        // Restaurar Config
+        const savedData = localStorage.getItem("docPromptConfigV4");
+        if(savedData) {
+            try {
+                const data = JSON.parse(savedData);
+                levelsMemory = data.levelsMemory;
+                
+                document.getElementById("h1-color").value = data.state.h1Color;
+                document.getElementById("h1-transform").value = data.state.h1Transform;
+                document.getElementById("h2-color").value = data.state.h2Color;
+                document.getElementById("h2-style").value = data.state.h2Style;
+                document.getElementById("table-head-bg").value = data.state.thBg;
+                document.getElementById("table-zebra-bg").value = data.state.zebraBg;
+                document.getElementById("p-color").value = data.state.pColor;
+                document.getElementById("p-spacing").value = data.state.pSpacing;
+                document.getElementById("font-family").value = data.state.fontFamily;
+                document.getElementById("border-radius").value = data.state.borderRadius || "6px";
+                document.getElementById("table-border-style").value = data.state.tableBorders || "standard";
+                
+                document.getElementById("hf-align").value = data.state.hfAlign;
+                document.getElementById("page-number-format").value = data.state.pageNumFormat;
+                document.getElementById("hf-lines").checked = data.state.hfLines;
+                document.getElementById("inc-callout").checked = data.state.incCallout;
+                document.getElementById("inc-boldtotals").checked = data.state.boldTotals;
+                document.getElementById("num-levels").value = data.state.numLevels;
+            } catch(e) {}
+        }
+        
+        rebuildDynamicLevels();
+    };
+</script>
+
+</body>
+</html>
